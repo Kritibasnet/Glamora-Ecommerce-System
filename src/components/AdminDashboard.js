@@ -1025,6 +1025,7 @@ export default class AdminDashboard extends Component {
                                         <tr>
                                             <th>Order ID</th>
                                             <th>User</th>
+                                            <th>Address</th>
                                             <th>Date</th>
                                             <th>Items</th>
                                             <th>Total</th>
@@ -1040,6 +1041,11 @@ export default class AdminDashboard extends Component {
                                                 <td>
                                                     <div>{order.username}</div>
                                                     <small className="text-muted">{order.email}</small>
+                                                </td>
+                                                <td>
+                                                    <div style={{ maxWidth: '200px', fontSize: '0.85rem' }}>
+                                                        {order.address || <span className="text-muted">No address provided</span>}
+                                                    </div>
                                                 </td>
                                                 <td>{new Date(order.created_at).toLocaleDateString()}</td>
                                                 <td>

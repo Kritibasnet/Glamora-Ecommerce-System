@@ -65,16 +65,32 @@ function CartTotals({ value, history, setShowSuccessModal }) {
     const [loyaltyCode, setLoyaltyCode] = React.useState('');
     const [discount, setDiscount] = React.useState(0);
     const [codeStatus, setCodeStatus] = React.useState('');
-    const [paymentMethod, setPaymentMethod] = React.useState('cod'); // 'cod' or 'online'
-    const [deliveryAddress, setDeliveryAddress] = React.useState('');
+    const [paymentMethod, setPaymentMethod] = React.useState(''); // Mandatory
+    const [addressForm, setAddressForm] = React.useState({
+        country: '',
+        city: '',
+        location: '',
+        postCode: '',
+        contact: ''
+    });
 
     React.useEffect(() => {
         const userStr = localStorage.getItem('glamora_user');
         if (userStr) {
             const user = JSON.parse(userStr);
-            if (user.location) setDeliveryAddress(user.location);
+            // Pre-fill contact if available from profile
+            if (user.phone) {
+                setAddressForm(prev => ({ ...prev, contact: user.phone }));
+            }
         }
     }, []);
+
+    const handleAddressChange = (e) => {
+        setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
+    };
+
+    const isFormValid = addressForm.country && addressForm.city && addressForm.location && addressForm.postCode && addressForm.contact && paymentMethod;
+    const combinedAddress = `${addressForm.location}, ${addressForm.city}, ${addressForm.country} (ZIP: ${addressForm.postCode}, Contact: ${addressForm.contact})`;
 
     const applyCode = async () => {
         if (!loyaltyCode) return;
@@ -108,7 +124,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
             localStorage.setItem('glamora_pending_checkout', JSON.stringify({
                 loyaltyCode: discount > 0 ? loyaltyCode : null,
                 finalTotal: finalTotal,
-                address: deliveryAddress
+                address: combinedAddress
             }));
             return;
         }
@@ -117,7 +133,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
         setLoading(true);
         setMessage('');
 
-        const result = await checkout(discount > 0 ? loyaltyCode : null, finalTotal, paymentMethod, deliveryAddress);
+        const result = await checkout(discount > 0 ? loyaltyCode : null, finalTotal, paymentMethod, combinedAddress);
 
         if (result.success) {
             setShowSuccessModal(true);
@@ -182,16 +198,77 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                             <strong>$ {finalTotal.toFixed(2)}</strong>
                         </h5>
 
-                        <div className="card my-4 p-3 border-0 bg-light text-left">
-                            <h6 className="text-title mb-3">Delivery & Payment</h6>
-                            <div className="form-group mb-3">
-                                <label className="small font-weight-bold">Delivery Address (from Profile)</label>
-                                <div className="p-2 border rounded bg-white text-muted small">
-                                    {deliveryAddress || 'No address set in profile. Please update your profile.'}
+                        <div className="card my-4 p-4 border-0 bg-light text-left shadow-sm">
+                            <h5 className="text-title mb-4 border-bottom pb-2">Delivery Details</h5>
+                            
+                            <div className="row">
+                                <div className="col-md-6 form-group">
+                                    <label className="small font-weight-bold">Country / Region *</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-control" 
+                                        name="country"
+                                        value={addressForm.country}
+                                        onChange={handleAddressChange}
+                                        placeholder="e.g. Nepal"
+                                        required
+                                    />
+                                </div>
+                                <div className="col-md-6 form-group">
+                                    <label className="small font-weight-bold">City / Village *</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-control" 
+                                        name="city"
+                                        value={addressForm.city}
+                                        onChange={handleAddressChange}
+                                        placeholder="e.g. Kathmandu"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label className="small font-weight-bold">Specific Location / Street *</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    name="location"
+                                    value={addressForm.location}
+                                    onChange={handleAddressChange}
+                                    placeholder="e.g. New Baneshwor, House #12"
+                                    required
+                                />
+                            </div>
+
+                            <div className="row">
+                                <div className="col-md-6 form-group">
+                                    <label className="small font-weight-bold">Post Code / ZIP *</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-control" 
+                                        name="postCode"
+                                        value={addressForm.postCode}
+                                        onChange={handleAddressChange}
+                                        placeholder="e.g. 44600"
+                                        required
+                                    />
+                                </div>
+                                <div className="col-md-6 form-group">
+                                    <label className="small font-weight-bold">Contact Number *</label>
+                                    <input 
+                                        type="text" 
+                                        className="form-control" 
+                                        name="contact"
+                                        value={addressForm.contact}
+                                        onChange={handleAddressChange}
+                                        placeholder="e.g. 98XXXXXXXX"
+                                        required
+                                    />
                                 </div>
                             </div>
                             
-                            <label className="small font-weight-bold mb-2">Payment Method</label>
+                            <h5 className="text-title mt-4 mb-3 border-bottom pb-2">Payment Method *</h5>
                             <div className="custom-control custom-radio mb-2">
                                 <input 
                                     type="radio" 
@@ -200,6 +277,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                                     className="custom-control-input"
                                     checked={paymentMethod === 'cod'}
                                     onChange={() => setPaymentMethod('cod')}
+                                    required
                                 />
                                 <label className="custom-control-label" htmlFor="payCod">Cash on Delivery</label>
                             </div>
@@ -211,9 +289,11 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                                     className="custom-control-input"
                                     checked={paymentMethod === 'online'}
                                     onChange={() => setPaymentMethod('online')}
+                                    required
                                 />
                                 <label className="custom-control-label" htmlFor="payOnline">Online Payment (eSewa)</label>
                             </div>
+                            {!paymentMethod && <small className="text-danger d-block mt-2">Please select a payment method to proceed.</small>}
                         </div>
 
                         {message && <div className={`alert ${message.includes('success') ? 'alert-success' : 'alert-danger'} mt-3`}>{message}</div>}
@@ -223,7 +303,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                                 className="btn btn-outline-success text-uppercase mb-3 px-5 w-100"
                                 type="button"
                                 onClick={handleCheckout}
-                                disabled={loading || !deliveryAddress}
+                                disabled={loading || !isFormValid}
                             >
                                 {loading ? 'Processing...' : 'Place Order (Cash on Delivery)'}
                             </button>
@@ -244,7 +324,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                                     className="btn text-uppercase mb-3 px-5 w-100"
                                     type="submit"
                                     style={{ backgroundColor: '#41A124', color: 'white', fontWeight: 'bold' }}
-                                    disabled={!esewaData.signature || !deliveryAddress}
+                                    disabled={!esewaData.signature || !isFormValid}
                                 >
                                     Pay with eSewa (v2)
                                 </button>

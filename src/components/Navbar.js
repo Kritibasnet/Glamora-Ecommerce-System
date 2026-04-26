@@ -78,10 +78,17 @@ class Navbar extends Component {
                           >
                             {authValue.user?.role === 'admin' ? "Admin Dashboard" : "My Dashboard"}
                           </Link>
-                          <Link to="/profile" className="user-greeting profile-nav-link" title="View Profile">
-                            <PersonIcon style={{ fontSize: '1.2rem' }} />
-                            {authValue.user?.username}
-                          </Link>
+                          {authValue.user?.role === 'admin' ? (
+                            <div className="user-greeting">
+                              <PersonIcon style={{ fontSize: '1.2rem' }} />
+                              {authValue.user?.username}
+                            </div>
+                          ) : (
+                            <Link to="/profile" className="user-greeting profile-nav-link" title="View Profile">
+                              <PersonIcon style={{ fontSize: '1.2rem' }} />
+                              {authValue.user?.username}
+                            </Link>
+                          )}
                           <button className="btn-logout" onClick={() => {
                             authValue.logout();
                             productValue.clearUserSession();
@@ -159,15 +166,22 @@ class Navbar extends Component {
                             >
                               {authValue.user?.role === 'admin' ? "Admin Dashboard" : "My Dashboard"}
                             </Link>
-                            <Link 
-                              to="/profile" 
-                              className="user-greeting profile-nav-link" 
-                              onClick={this.closeMobileMenu}
-                              title="View Profile"
-                            >
-                              <PersonIcon style={{ fontSize: '1.2rem' }} />
-                              {authValue.user?.username}
-                            </Link>
+                            {authValue.user?.role === 'admin' ? (
+                              <div className="user-greeting">
+                                <PersonIcon style={{ fontSize: '1.2rem' }} />
+                                {authValue.user?.username}
+                              </div>
+                            ) : (
+                              <Link 
+                                to="/profile" 
+                                className="user-greeting profile-nav-link" 
+                                onClick={this.closeMobileMenu}
+                                title="View Profile"
+                              >
+                                <PersonIcon style={{ fontSize: '1.2rem' }} />
+                                {authValue.user?.username}
+                              </Link>
+                            )}
                             <button className="btn-logout" onClick={() => {
                               authValue.logout();
                               productValue.clearUserSession();
