@@ -21,12 +21,48 @@ class ProductProvider extends Component {
         orders: [],
         orderLoading: true,
         searchTerm: '',
-        selectedCategory: 'All'
+        selectedCategory: 'All',
+        purchaseHistory: [],
+        searchHistory: []
+    };
+
+    getRecommendedProduct = () => {
+        const { products, searchHistory } = this.state;
+        if (products.length === 0) return null;
+        
+        if (searchHistory.length === 0) {
+            // Return a random product if no history
+            return products[Math.floor(Math.random() * products.length)];
+        }
+        
+        // Simple matching: find product whose title or category matches any keyword in search history
+        // We prioritize more recent searches
+        for (const search of searchHistory) {
+            const matches = products.filter(p => 
+                p.title.toLowerCase().includes(search) || 
+                p.category.toLowerCase().includes(search) ||
+                (p.company && p.company.toLowerCase().includes(search))
+            );
+            
+            if (matches.length > 0) {
+                return matches[Math.floor(Math.random() * matches.length)];
+            }
+        }
+        
+        return products[Math.floor(Math.random() * products.length)];
     };
 
     handleSearch = (e) => {
         const value = e.target.value;
         this.setState({ searchTerm: value });
+        
+        // Add to search history if it's a meaningful search (length > 2)
+        if (value.trim().length > 2) {
+            this.setState(prevState => {
+                const newHistory = [...new Set([value.trim().toLowerCase(), ...prevState.searchHistory])].slice(0, 10);
+                return { searchHistory: newHistory };
+            });
+        }
     };
 
     setSearchTermDirectly = (term) => {
@@ -135,7 +171,26 @@ class ProductProvider extends Component {
             });
             if (response.ok) {
                 const orders = await response.json();
-                this.setState({ orders, orderLoading: false });
+                // Build purchaseHistory from orders
+                const purchaseHistory = [];
+                orders.forEach(order => {
+                    const items = typeof order.items === 'string'
+                        ? JSON.parse(order.items)
+                        : (order.items || []);
+                    items.forEach(item => {
+                        purchaseHistory.push({
+                            productId: item.id,
+                            title: item.title,
+                            img: item.img,
+                            price: item.price,
+                            count: item.count,
+                            orderId: order.id,
+                            purchasedAt: order.created_at,
+                            orderStatus: order.status
+                        });
+                    });
+                });
+                this.setState({ orders, orderLoading: false, purchaseHistory });
             } else {
                 this.setState({ orderLoading: false });
             }
@@ -317,7 +372,9 @@ class ProductProvider extends Component {
 
     addToCart = (id) => {
         let tempProducts = [...this.state.products];
-        const index = tempProducts.indexOf(this.getItem(id));
+        const item = this.getItem(id);
+        if (!item) return;
+        const index = tempProducts.indexOf(item);
 
         const product = tempProducts[index];
 
@@ -339,10 +396,14 @@ class ProductProvider extends Component {
     increment = (id) => {
         let tempCart = [...this.state.cart];
 
-        const selectedProduct = tempCart.find(item => item.id === id);
+        const selectedProduct = tempCart.find(item => Number(item.id) === Number(id));
+
+        if (!selectedProduct) {
+            console.error(`Product with ID ${id} not found in cart during increment`);
+            return;
+        }
 
         const index = tempCart.indexOf(selectedProduct);
-
         const product = tempCart[index];
 
         product.count = product.count + 1;
@@ -361,10 +422,14 @@ class ProductProvider extends Component {
     decrement = (id) => {
         let tempCart = [...this.state.cart];
 
-        const selectedProduct = tempCart.find(item => item.id === id);
+        const selectedProduct = tempCart.find(item => Number(item.id) === Number(id));
+
+        if (!selectedProduct) {
+            console.error(`Product with ID ${id} not found in cart during decrement`);
+            return;
+        }
 
         const index = tempCart.indexOf(selectedProduct);
-
         const product = tempCart[index];
 
         product.count = product.count - 1;
@@ -390,9 +455,13 @@ class ProductProvider extends Component {
         let tempProducts = [...this.state.products];
         let tempCart = [...this.state.cart];
 
-        tempCart = tempCart.filter(item => item.id !== id);
+        tempCart = tempCart.filter(item => Number(item.id) !== Number(id));
 
-        const index = tempProducts.indexOf(this.getItem(id));
+        const item = this.getItem(id);
+        if (!item) return;
+
+        const index = tempProducts.indexOf(item);
+        if (index === -1) return;
 
         let removedProduct = tempProducts[index];
         removedProduct.inCart = false;
@@ -466,11 +535,10 @@ class ProductProvider extends Component {
                 loadCart: this.loadCart,
                 fetchOrders: this.fetchOrders,
                 checkout: this.checkout,
-                fetchOrders: this.fetchOrders,
-                checkout: this.checkout,
                 handleSearch: this.handleSearch,
                 setSearchTermDirectly: this.setSearchTermDirectly,
-                handleCategory: this.handleCategory
+                handleCategory: this.handleCategory,
+                getRecommendedProduct: this.getRecommendedProduct
             }}>
                 {this.props.children}
 

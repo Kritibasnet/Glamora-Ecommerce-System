@@ -942,11 +942,11 @@ export default class AdminDashboard extends Component {
                                                 style={{ fontSize: '0.85rem', height: '40px', padding: '5px 10px' }}
                                             >
                                                 <option value="" disabled hidden>Select Category</option>
-                                                <option value="Accessories">Accessories</option>
-                                                <option value="Skincare">Skincare</option>
                                                 <option value="Makeup">Makeup</option>
-                                                <option value="Perfume & body lotion">Perfume & body lotion</option>
-                                                <option value="Hair & body care">Hair & body care</option>
+                                                <option value="Skincare">Skincare</option>
+                                                <option value="Hair & Body Care">Hair & Body Care</option>
+                                                <option value="Perfume & Body Lotion">Perfume & Body Lotion</option>
+                                                <option value="Accessories">Accessories</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1185,11 +1185,11 @@ export default class AdminDashboard extends Component {
                                             style={{ fontSize: '0.85rem', height: '40px', padding: '5px 10px' }}
                                         >
                                             <option value="" disabled hidden>Select Category</option>
-                                            <option value="Accessories">Accessories</option>
-                                            <option value="Skincare">Skincare</option>
                                             <option value="Makeup">Makeup</option>
-                                            <option value="Perfume & body lotion">Perfume & body lotion</option>
-                                            <option value="Hair & body care">Hair & body care</option>
+                                            <option value="Skincare">Skincare</option>
+                                            <option value="Hair & Body Care">Hair & Body Care</option>
+                                            <option value="Perfume & Body Lotion">Perfume & Body Lotion</option>
+                                            <option value="Accessories">Accessories</option>
                                         </select>
                                     </div>
                                 </div>

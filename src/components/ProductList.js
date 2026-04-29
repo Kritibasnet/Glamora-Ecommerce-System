@@ -30,7 +30,8 @@ class ProductList extends Component {
                                                 .filter(product => {
                                                     const matchesSearch = product.title.toLowerCase().includes(value.searchTerm.toLowerCase()) ||
                                                         product.company.toLowerCase().includes(value.searchTerm.toLowerCase());
-                                                    const matchesCategory = value.selectedCategory === 'All' || product.category === value.selectedCategory;
+                                                    const matchesCategory = value.selectedCategory === 'All' || 
+                                                        (product.category && product.category.toLowerCase() === value.selectedCategory.toLowerCase());
                                                     return matchesSearch && matchesCategory;
                                                 });
 

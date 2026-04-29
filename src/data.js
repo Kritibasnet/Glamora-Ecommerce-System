@@ -126,7 +126,7 @@ export const storeProducts = [
     img: "/img/deodorant.jpg",
     price: 24,
     company: "horex",
-    category: "Perfume & body lotion",
+    category: "Perfume & Body Lotion",
     info:
       "Keeps body odour away ,Long-lasting protection",
     inCart: false,
@@ -155,7 +155,7 @@ export const storeProducts = [
     img: "/img/perfume.jpg",
     price: 80,
     company: "channel paris",
-    category: "Perfume & body lotion",
+    category: "Perfume & Body Lotion",
     info:
       "Elegant fragnance, a perfume begins in the classic period of the Channel Paris.Create entirely memories with our winter scents with a modern twist. ",
     inCart: false,
@@ -196,7 +196,7 @@ export const storeProducts = [
     img: "/img/hairmask.jpg",
     price: 25,
     company: "SilkSilk",
-    category: "Hair & body care",
+    category: "Hair & Body Care",
     info: "Deep conditioning treatment for damaged hair. Restores shine and softness naturally.",
     inCart: false,
     inStock: true,

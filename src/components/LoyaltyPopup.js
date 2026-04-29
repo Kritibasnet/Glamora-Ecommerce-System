@@ -59,20 +59,20 @@ const ModalOverlay = styled.div`
 `;
 
 const ModalContainer = styled.div`
-    background: #C41E5A; /* Deep Pink matching the image */
+    background: linear-gradient(135deg, #d4567d 0%, #a83d5e 100%);
     width: 90%;
     max-width: 400px;
     padding: 3rem 2rem;
-    border-radius: 10px;
+    border-radius: 20px;
     position: relative;
     text-align: center;
     color: white;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    animation: slideUp 0.4s ease-out;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(255,255,255,0.2);
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 
     @keyframes slideUp {
-        from { transform: translateY(30px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+        from { transform: translateY(40px) scale(0.95); opacity: 0; }
+        to { transform: translateY(0) scale(1); opacity: 1; }
     }
 `;
 
@@ -106,23 +106,24 @@ const Title = styled.h2`
 const CirclesContainer = styled.div`
     display: flex;
     justify-content: center;
-    gap: 15px;
+    gap: 12px;
     margin-bottom: 2.5rem;
 `;
 
 const Circle = styled.div`
-    width: 45px;
-    height: 45px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #C41E5A;
-    background: ${props => props.filled ? 'white' : 'transparent'};
-    border: 2px solid white;
-    transition: all 0.3s ease;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: ${props => props.filled ? '#a83d5e' : 'rgba(255,255,255,0.7)'};
+    background: ${props => props.filled ? 'white' : 'rgba(0,0,0,0.1)'};
+    border: 2px solid ${props => props.filled ? 'white' : 'rgba(255,255,255,0.4)'};
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: ${props => props.filled ? '0 4px 10px rgba(0,0,0,0.2)' : 'none'};
 `;
 
 const Message = styled.p`

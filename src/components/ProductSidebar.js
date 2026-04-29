@@ -9,10 +9,15 @@ export default class ProductSidebar extends Component {
                 {(value) => {
                     const { products, handleCategory, selectedCategory, setSearchTermDirectly } = value;
                     // Extract unique categories
-                    const uniqueCategories = ['All', ...new Set(products.map(item => item.category))];
-
-                    // Filter out undefined/null categories just in case
-                    const categories = uniqueCategories.filter(Boolean);
+                    const categories = [
+                        'All',
+                        'Makeup',
+                        'Skincare',
+                        'Hair & Body Care',
+                        'Perfume & Body Lotion',
+                        'Accessories',
+                        'General'
+                    ];
 
                     return (
                         <SidebarWrapper>

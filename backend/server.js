@@ -42,10 +42,10 @@ const otpStore = new Map();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Ensure uploads directory exists
-const uploadDir = path.join(__dirname, 'uploads');
+const uploadDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
 }
@@ -53,7 +53,7 @@ if (!fs.existsSync(uploadDir)) {
 // Multer Config
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, 'uploads/');
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname));
@@ -103,12 +103,12 @@ const PRODUCT_CATALOG = [
     { id: 6, title: "Treatment Oil", category: "Skincare", info: "Skin treatment oil, antioxidants, skin nourishing, botanical" },
     { id: 7, title: "Makeup Brush", category: "Accessories", info: "Professional cosmetics makeup brushes set, foundation, eyeshadow, blush" },
     { id: 8, title: "Nail Polish", category: "Makeup", info: "Easy apply nail polish, durable, soft brush" },
-    { id: 9, title: "Deodorant", category: "Perfume & body lotion", info: "Long-lasting body odour protection deodorant" },
+    { id: 9, title: "Deodorant", category: "Perfume & Body lotion", info: "Long-lasting body odour protection deodorant" },
     { id: 10, title: "Intense Matte Lipstick", category: "Makeup", info: "Matte moisturizing long lasting lipstick, all skin tones" },
-    { id: 11, title: "Perfume", category: "Perfume & body lotion", info: "Elegant fragrance, classic Channel Paris scent" },
+    { id: 11, title: "Perfume", category: "Perfume & Body lotion", info: "Elegant fragrance, classic Channel Paris scent" },
     { id: 12, title: "Red Bag", category: "Accessories", info: "Red sling bag, synthetic material, golden chain belt" },
     { id: 13, title: "Facial Serum", category: "Skincare", info: "Vitamin C and Hyaluronic acid serum, hydration, radiant complexion" },
-    { id: 14, title: "Hair Mask", category: "Hair & body care", info: "Deep conditioning hair mask, restores shine, softness" },
+    { id: 14, title: "Hair Mask", category: "Hair & Body Care", info: "Deep conditioning hair mask, restores shine, softness" },
     { id: 15, title: "Limited Edition Watch", category: "Accessories", info: "Premium luxury watch, leather strap, sapphire crystal" },
     { id: 16, title: "Suede Handbag", category: "Accessories", info: "Classic suede handbag, gold accents, formal occasions" },
 ];
@@ -875,12 +875,12 @@ app.get('/api/admin/deleted-products', async (req, res) => {
 // Admin Add Product (Protected)
 app.post('/api/admin/products', authenticateToken, verifyAdmin, upload.single('image'), async (req, res) => {
     try {
-        const { title, price, company, category, info } = req.body;
-        if (!title || !price || !company || !req.file) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        const { title, price, company, category, info, inStock, stockCount } = req.body;
+        if (!title || !price || !company) {
+            return res.status(400).json({ error: 'Missing required fields (title, price, company)' });
         }
-
-        const imgPath = `http://localhost:5000/uploads/${req.file.filename}`;
+        // Image is optional; provide placeholder if not uploaded
+        const imgPath = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : '';
         const product = await dbHelpers.addCustomProduct({
             title,
             img: imgPath,
@@ -888,14 +888,14 @@ app.post('/api/admin/products', authenticateToken, verifyAdmin, upload.single('i
             company,
             category: category || 'General',
             info: info || '',
-            inStock: req.body.inStock === 'true' || req.body.inStock === true || true,
-            stockCount: parseInt(req.body.stockCount) || 100
+            inStock: inStock === 'true' || inStock === true || true,
+            stockCount: parseInt(stockCount) || 100
         });
-
         res.status(201).json({ message: 'Product added successfully', product });
     } catch (error) {
         console.error('Add product error:', error);
-        res.status(500).json({ error: 'Server error' });
+        // Ensure JSON error response
+        res.status(500).json({ error: 'Server error while adding product' });
     }
 });
 
@@ -1068,6 +1068,15 @@ app.post('/api/admin/messages/:userId', authenticateToken, verifyAdmin, async (r
     } catch (error) {
         res.status(500).json({ error: 'Failed to send reply' });
     }
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled Error:', err);
+    res.status(500).json({
+        error: 'An unexpected server error occurred.',
+        details: err.message
+    });
 });
 
 // Start server

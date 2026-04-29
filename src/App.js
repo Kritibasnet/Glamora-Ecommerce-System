@@ -24,6 +24,8 @@ import EsewaSuccess from './components/EsewaSuccess';
 import EsewaFailure from './components/EsewaFailure';
 import { AuthProvider, AuthConsumer } from './context/AuthContext';
 import ChatWidget from './components/ChatWidget';
+import PromoPopup from './components/PromoPopup';
+import { RecommendedProductPopup } from './components/RecommendationPopup';
 
 class App extends Component {
   // Trigger HMR rebuild
@@ -121,6 +123,8 @@ class App extends Component {
           </Switch>
           <Modal />
           <ChatWidget />
+          <PromoPopup />
+          <RecommendedProductPopup />
         </React.Fragment>
       </AuthProvider>
     );
