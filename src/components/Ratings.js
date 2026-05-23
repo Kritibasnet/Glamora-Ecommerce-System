@@ -5,6 +5,15 @@ import { ProductConsumer } from '../context';
 import Title from './Title';
 
 class Ratings extends Component {
+
+
+    componentDidMount() {
+        if (!this.props.productId) {
+            document.title = 'Ratings & Reviews - Glamora';
+        }
+        this.fetchRatings();
+    }
+    
     constructor(props) {
         super(props);
         this.state = {
@@ -17,28 +26,12 @@ class Ratings extends Component {
                 rating: 5,
                 review: ''
             },
-            showAddForm: false,
-            submitting: false
+            successMessage: '',
+            errorMessage: ''
         };
-    }
-
-    componentDidMount() {
-        if (!this.props.productId) {
-            document.title = 'Ratings & Reviews - Glamora';
-        }
-        this.fetchRatings();
-    }
-    
-    componentDidUpdate(prevProps) {
-        if (this.props.productId !== prevProps.productId) {
-            this.setState(prevState => ({
-                selectedProduct: this.props.productId || 'all',
-                newRating: {
-                    ...prevState.newRating,
-                    productId: this.props.productId || ''
-                }
-            }));
-        }
+        // Ref for the add rating form to enable auto‑scroll when opened
+        this.addFormRef = React.createRef();
+        this.wrapperRef = React.createRef();
     }
 
     fetchRatings = async () => {
@@ -61,23 +54,37 @@ class Ratings extends Component {
         this.setState({ selectedProduct: e.target.value });
     };
 
+    // Update rating fields (including star rating)
     handleRatingChange = (e) => {
-        this.setState({
+        const { name, value } = e.target;
+        this.setState(prevState => ({
             newRating: {
-                ...this.state.newRating,
-                [e.target.name]: e.target.value
+                ...prevState.newRating,
+                [name]: name === 'rating' ? parseInt(value) : value
             }
-        });
+        }));
     };
+
+    // Direct star click handler – sets rating to the clicked star number
+    setRating = (star) => {
+        this.setState(prevState => ({
+            newRating: {
+                ...prevState.newRating,
+                rating: star
+            }
+        }));
+    };
+
+    
 
     handleSubmitRating = async (e, token) => {
         e.preventDefault();
         const { newRating } = this.state;
 
-        if (!newRating.productId) {
-            alert('Please select a product');
-            return;
-        }
+if (!newRating.productId) {
+    this.setState({ errorMessage: 'Please select a product' });
+    return;
+}
 
         this.setState({ submitting: true });
 
@@ -96,25 +103,35 @@ class Ratings extends Component {
             });
 
             if (response.ok) {
-                alert('Rating submitted successfully!');
+                // Show inline success message
                 this.setState({
-                    newRating: { productId: '', rating: 5, review: '' },
+                    successMessage: 'Successfully added review.',
+                    errorMessage: '',
+                    submitting: false,
                     showAddForm: false,
-                    submitting: false
+                    newRating: { productId: '', rating: 5, review: '' }
                 });
+                // Clear success message after 3 seconds
+                setTimeout(() => this.setState({ successMessage: '' }), 3000);
                 this.fetchRatings();
                 if (this.props.onRatingSuccess) {
                     this.props.onRatingSuccess();
                 }
             } else {
+                // Show inline error message
                 const data = await response.json();
-                alert(data.error || 'Failed to submit rating');
-                this.setState({ submitting: false });
+                this.setState({
+                    errorMessage: data.error || 'Failed to submit rating',
+                    submitting: false
+                });
             }
         } catch (error) {
             console.error('Error submitting rating:', error);
-            alert('Network error');
-            this.setState({ submitting: false });
+            // Show network error message
+            this.setState({
+                errorMessage: 'Network error',
+                submitting: false
+            });
         }
     };
 
@@ -130,9 +147,29 @@ class Ratings extends Component {
         return stars;
     };
 
+    componentDidUpdate(prevProps, prevState) {
+        // Handle productId change
+        if (this.props.productId !== prevProps.productId) {
+            this.setState(prevState => ({
+                selectedProduct: this.props.productId || 'all',
+                newRating: {
+                    ...prevState.newRating,
+                    productId: this.props.productId || ''
+                }
+            }));
+        }
+        // When the add‑rating form becomes visible, scroll the component into view
+        if (!prevState.showAddForm && this.state.showAddForm) {
+            if (this.wrapperRef && this.wrapperRef.current) {
+                this.wrapperRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        if (!prevState.showAddForm && this.state.showAddForm && this.addFormRef.current) {
+            this.addFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
     render() {
         const { ratings, loading, error, selectedProduct, newRating, showAddForm, submitting } = this.state;
-
         const filteredRatings = selectedProduct === 'all'
             ? ratings
             : ratings.filter(r => r.product_id === parseInt(selectedProduct));
@@ -142,7 +179,7 @@ class Ratings extends Component {
                 {authValue => (
                     <ProductConsumer>
                         {productValue => (
-                            <RatingsWrapper className="fade-in">
+                            <RatingsWrapper className="fade-in" ref={this.wrapperRef}>
                                 <div className="container">
                                     <Title name="Product" title="Ratings & Reviews" />
 
@@ -172,61 +209,63 @@ class Ratings extends Component {
                                     </div>
 
                                     {showAddForm && authValue.isAuthenticated && (
-                                        <div className="add-rating-form">
-                                            <h3>Write a Review</h3>
-                                            <form onSubmit={(e) => this.handleSubmitRating(e, authValue.token)}>
-                                                {!this.props.productId && (
+                                        <div className="review-modal-overlay" onClick={() => this.setState({ showAddForm: false })}>
+                                            <div className="review-modal" onClick={e => e.stopPropagation()} ref={this.addFormRef}>
+                        {this.state.successMessage && (
+                            <div className="alert-success" role="alert">
+                                {this.state.successMessage}
+                            </div>
+                        )}
+                        {this.state.errorMessage && (
+                            <div className="alert-error" role="alert">
+                                {this.state.errorMessage}
+                            </div>
+                        )}
+                        <h3>Write a Review</h3>
+                                                <form onSubmit={(e) => this.handleSubmitRating(e, authValue.token)}>
+                                                    {!this.props.productId && (
+                                                        <div className="form-group">
+                                                            <label>Select Product:</label>
+                                                            <select
+                                                                name="productId"
+                                                                value={newRating.productId}
+                                                                onChange={this.handleRatingChange}
+                                                                required
+                                                            >
+                                                                <option value="">Choose a product...</option>
+                                                                {productValue.products.map(product => (
+                                                                    <option key={product.id} value={product.id}>
+                                                                        {product.title}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    )}
                                                     <div className="form-group">
-                                                        <label>Select Product:</label>
-                                                        <select
-                                                            name="productId"
-                                                            value={newRating.productId}
-                                                            onChange={this.handleRatingChange}
-                                                            required
-                                                        >
-                                                            <option value="">Choose a product...</option>
-                                                            {productValue.products.map(product => (
-                                                                <option key={product.id} value={product.id}>
-                                                                    {product.title}
-                                                                </option>
+                                                        <label>Rating:</label>
+                                                        <div className="rating-input">
+                                                            {[1, 2, 3, 4, 5].map(star => (
+                                                                <label key={star} className="star-label" onClick={() => this.setRating(star)}>
+                                                                     <span className={newRating.rating && parseInt(newRating.rating) >= star ? "star-icon filled" : "star-icon"}>★</span>
+                                                                </label>
                                                             ))}
-                                                        </select>
+                                                        </div>
                                                     </div>
-                                                )}
-
-                                                <div className="form-group">
-                                                    <label>Rating:</label>
-                                                    <div className="rating-input">
-                                                        {[1, 2, 3, 4, 5].map(star => (
-                                                            <label key={star} className="star-label">
-                                                                <input
-                                                                    type="radio"
-                                                                    name="rating"
-                                                                    value={star}
-                                                                    checked={parseInt(newRating.rating) === star}
-                                                                    onChange={this.handleRatingChange}
-                                                                />
-                                                                <span className="star-icon">★</span>
-                                                            </label>
-                                                        ))}
+                                                    <div className="form-group">
+                                                        <label>Review (optional):</label>
+                                                        <textarea
+                                                            name="review"
+                                                            value={newRating.review}
+                                                            onChange={this.handleRatingChange}
+                                                            placeholder="Share your experience with this product..."
+                                                            rows="4"
+                                                        />
                                                     </div>
-                                                </div>
-
-                                                <div className="form-group">
-                                                    <label>Review (optional):</label>
-                                                    <textarea
-                                                        name="review"
-                                                        value={newRating.review}
-                                                        onChange={this.handleRatingChange}
-                                                        placeholder="Share your experience with this product..."
-                                                        rows="4"
-                                                    />
-                                                </div>
-
-                                                <button type="submit" className="btn-submit" disabled={submitting}>
-                                                    {submitting ? 'Submitting...' : 'Submit Review'}
-                                                </button>
-                                            </form>
+                                                    <button type="submit" className="btn-submit" disabled={submitting}>
+                                                        {submitting ? 'Submitting...' : 'Submit Review'}
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </div>
                                     )}
 
@@ -360,13 +399,26 @@ const RatingsWrapper = styled.div`
     }
   }
 
-  .add-rating-form {
-    background: white;
+  .review-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .review-modal {
+    background: var(--mainWhite);
     padding: 2rem;
     border-radius: var(--borderRadius);
-    box-shadow: var(--lightShadow);
-    margin-bottom: 2rem;
-
+    max-width: 500px;
+    width: 90%;
+    box-shadow: var(--darkShadow);
     h3 {
       color: var(--mainPink);
       margin-bottom: 1.5rem;
@@ -419,7 +471,11 @@ const RatingsWrapper = styled.div`
           transition: var(--mainTransition);
         }
 
-        input:checked ~ .star-icon,
+        /* Highlight stars up to the selected rating */
+        .star-icon.filled {
+          color: var(--mainGold);
+        }
+
         &:hover .star-icon {
           color: var(--mainGold);
         }
@@ -428,6 +484,24 @@ const RatingsWrapper = styled.div`
       .star-label:has(input:checked) ~ .star-label .star-icon {
         color: #ddd;
       }
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        padding: 0.75rem 1rem;
+        border: 1px solid #c3e6cb;
+        border-radius: 0.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .alert-error {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 0.75rem 1rem;
+        border: 1px solid #f5c6cb;
+        border-radius: 0.25rem;
+        margin-bottom: 1rem;
     }
 
     .btn-submit {

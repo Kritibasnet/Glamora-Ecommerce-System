@@ -57,7 +57,7 @@ class Products extends Component {
                                                     value.openModal(id);
                                                 }}>
                                                 <i className="fas fa-shopping-bag mr-1" />
-                                                Add to Bag
+                                                Add to Cart
                                             </button>
                                         )
                                     ) : (

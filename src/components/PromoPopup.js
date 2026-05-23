@@ -54,7 +54,7 @@ export default class PromoPopup extends Component {
         // Show first popup after 3 minutes, then repeat every 3 minutes
         this._timer = setInterval(() => {
             this.showNextPromo();
-        }, 1 * 60 * 1000); // 3 minutes
+        }, 0.3 * 60 * 1000); // 3 minutes
     }
 
     componentWillUnmount() {

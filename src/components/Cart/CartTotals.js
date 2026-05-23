@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import CryptoJS from 'crypto-js';
 import PaypalButton from './PaypalButton';
+import DeliveryMap from './DeliveryMap';
 function CartTotals({ value, history, setShowSuccessModal }) {
     const { cartSubTotal, cartTax, cartTotal, clearCart, checkout } = value;
     const [loading, setLoading] = React.useState(false);
@@ -66,6 +67,8 @@ function CartTotals({ value, history, setShowSuccessModal }) {
     const [discount, setDiscount] = React.useState(0);
     const [codeStatus, setCodeStatus] = React.useState('');
     const [paymentMethod, setPaymentMethod] = React.useState(''); // Mandatory
+    const [latitude, setLatitude] = React.useState(null);
+    const [longitude, setLongitude] = React.useState(null);
     const [addressForm, setAddressForm] = React.useState({
         country: '',
         city: '',
@@ -89,8 +92,25 @@ function CartTotals({ value, history, setShowSuccessModal }) {
         setAddressForm({ ...addressForm, [e.target.name]: e.target.value });
     };
 
-    const isFormValid = addressForm.country && addressForm.city && addressForm.location && addressForm.postCode && addressForm.contact && paymentMethod;
-    const combinedAddress = `${addressForm.location}, ${addressForm.city}, ${addressForm.country} (ZIP: ${addressForm.postCode}, Contact: ${addressForm.contact})`;
+    const handleLocationSelect = (lat, lng) => {
+        setLatitude(lat);
+        setLongitude(lng);
+    };
+
+    const handleAddressChangeFromMap = (addressData) => {
+        // Auto-fill form with map data, but don't override manually entered values
+        setAddressForm(prev => ({
+            ...prev,
+            location: prev.location || addressData.location || '',
+            city: prev.city || addressData.city || '',
+            country: prev.country || addressData.country || '',
+            postCode: prev.postCode || addressData.postCode || ''
+        }));
+    };
+
+    const isFormValid = addressForm.country && addressForm.city && addressForm.postCode && addressForm.contact && paymentMethod;
+    const coordinatesStr = latitude && longitude ? ` [GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}]` : '';
+    const combinedAddress = `${addressForm.location || '(Map Location)'}, ${addressForm.city}, ${addressForm.country} (ZIP: ${addressForm.postCode}, Contact: ${addressForm.contact})${coordinatesStr}`;
 
     const applyCode = async () => {
         if (!loyaltyCode) return;
@@ -229,15 +249,14 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                             </div>
 
                             <div className="form-group">
-                                <label className="small font-weight-bold">Specific Location / Street *</label>
+                                <label className="small font-weight-bold">Specific Location / Street <span style={{ color: '#999', fontSize: '11px' }}>(or use map below)</span></label>
                                 <input 
                                     type="text" 
                                     className="form-control" 
                                     name="location"
                                     value={addressForm.location}
                                     onChange={handleAddressChange}
-                                    placeholder="e.g. New Baneshwor, House #12"
-                                    required
+                                    placeholder="e.g. New Baneshwor, House #12 (Optional)"
                                 />
                             </div>
 
@@ -294,6 +313,22 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                                 <label className="custom-control-label" htmlFor="payOnline">Online Payment (eSewa)</label>
                             </div>
                             {!paymentMethod && <small className="text-danger d-block mt-2">Please select a payment method to proceed.</small>}
+                        </div>
+
+                        <div className="card my-4 p-4 border-0 bg-light shadow-sm">
+                            <h5 className="text-title mb-3 border-bottom pb-2">📍 Delivery Location on Map (Optional)</h5>
+                            <DeliveryMap 
+                                latitude={latitude}
+                                longitude={longitude}
+                                onLocationSelect={handleLocationSelect}
+                                onAddressChange={handleAddressChangeFromMap}
+                                city={addressForm.city}
+                            />
+                            {latitude && longitude && (
+                                <div className="alert alert-info mt-3 mb-0">
+                                    <strong>✓ Location Pinned!</strong> Your delivery coordinates have been recorded.
+                                </div>
+                            )}
                         </div>
 
                         {message && <div className={`alert ${message.includes('success') ? 'alert-success' : 'alert-danger'} mt-3`}>{message}</div>}

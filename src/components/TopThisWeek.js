@@ -13,8 +13,40 @@ class TopThisWeek extends Component {
     return (
       <ProductConsumer>
         {value => {
-          // Get top 6 products (first 6 from the product list)
-          const topProducts = value.products.slice(0, 6);
+          // Sort products by recent purchases, then get top 6
+          let sortedProducts = [...value.products];
+          
+          // Create a map of purchased products with their most recent purchase date
+          const purchaseMap = {};
+          value.purchaseHistory.forEach(purchase => {
+            if (!purchaseMap[purchase.productId]) {
+              purchaseMap[purchase.productId] = purchase.purchasedAt;
+            } else {
+              // Keep the most recent purchase date
+              const existingDate = new Date(purchaseMap[purchase.productId]).getTime();
+              const newDate = new Date(purchase.purchasedAt).getTime();
+              if (newDate > existingDate) {
+                purchaseMap[purchase.productId] = purchase.purchasedAt;
+              }
+            }
+          });
+          
+          // Sort by purchase recency, then by original order
+          sortedProducts.sort((a, b) => {
+            const aLatestPurchase = purchaseMap[a.id] ? new Date(purchaseMap[a.id]).getTime() : 0;
+            const bLatestPurchase = purchaseMap[b.id] ? new Date(purchaseMap[b.id]).getTime() : 0;
+            
+            if (aLatestPurchase > 0 && bLatestPurchase > 0) {
+              return bLatestPurchase - aLatestPurchase;
+            }
+            
+            if (aLatestPurchase > 0) return -1;
+            if (bLatestPurchase > 0) return 1;
+            
+            return 0;
+          });
+          
+          const topProducts = sortedProducts.slice(0, 6);
 
           return (
             <TopWeekWrapper className="fade-in">

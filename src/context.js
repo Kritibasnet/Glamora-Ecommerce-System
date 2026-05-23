@@ -27,28 +27,58 @@ class ProductProvider extends Component {
     };
 
     getRecommendedProduct = () => {
-        const { products, searchHistory } = this.state;
+        const { products, purchaseHistory, searchHistory } = this.state;
         if (products.length === 0) return null;
         
-        if (searchHistory.length === 0) {
-            // Return a random product if no history
-            return products[Math.floor(Math.random() * products.length)];
-        }
-        
-        // Simple matching: find product whose title or category matches any keyword in search history
-        // We prioritize more recent searches
-        for (const search of searchHistory) {
-            const matches = products.filter(p => 
-                p.title.toLowerCase().includes(search) || 
-                p.category.toLowerCase().includes(search) ||
-                (p.company && p.company.toLowerCase().includes(search))
+        // Priority 1: Get recently purchased products and recommend similar ones
+        if (purchaseHistory.length > 0) {
+            // Get the most recent purchase
+            const recentPurchases = purchaseHistory.sort((a, b) => 
+                new Date(b.purchasedAt) - new Date(a.purchasedAt)
             );
             
-            if (matches.length > 0) {
-                return matches[Math.floor(Math.random() * matches.length)];
+            if (recentPurchases.length > 0) {
+                const lastPurchasedCategory = recentPurchases[0].category || 
+                    products.find(p => p.id === recentPurchases[0].productId)?.category;
+                
+                // Find products in the same category as recent purchase
+                if (lastPurchasedCategory) {
+                    const similarProducts = products.filter(p => 
+                        p.category && p.category.toLowerCase() === lastPurchasedCategory.toLowerCase() &&
+                        p.id !== recentPurchases[0].productId // Don't recommend the same product
+                    );
+                    
+                    if (similarProducts.length > 0) {
+                        return similarProducts[Math.floor(Math.random() * similarProducts.length)];
+                    }
+                }
+                
+                // If no similar category found, return a different product
+                const otherProducts = products.filter(p => p.id !== recentPurchases[0].productId);
+                if (otherProducts.length > 0) {
+                    return otherProducts[Math.floor(Math.random() * otherProducts.length)];
+                }
             }
         }
         
+        // Priority 2: Use search history for recommendations
+        if (searchHistory.length > 0) {
+            // Simple matching: find product whose title or category matches any keyword in search history
+            // We prioritize more recent searches
+            for (const search of searchHistory) {
+                const matches = products.filter(p => 
+                    p.title.toLowerCase().includes(search) || 
+                    p.category.toLowerCase().includes(search) ||
+                    (p.company && p.company.toLowerCase().includes(search))
+                );
+                
+                if (matches.length > 0) {
+                    return matches[Math.floor(Math.random() * matches.length)];
+                }
+            }
+        }
+        
+        // Priority 3: Return a random product
         return products[Math.floor(Math.random() * products.length)];
     };
 

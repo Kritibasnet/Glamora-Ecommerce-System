@@ -97,7 +97,14 @@ export default class Details extends Component {
                             {/* Ratings and Reviews Section */}
                             <div className="row mt-5">
                                 <div className="col-10 mx-auto">
-                                    <Ratings productId={id} />
+                                    <AuthConsumer>
+                                        {authValue => (
+                                            <Ratings 
+                                                productId={id} 
+                                                allowAdd={authValue.isAuthenticated}
+                                            />
+                                        )}
+                                    </AuthConsumer>
                                 </div>
                             </div>
 

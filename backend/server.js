@@ -113,30 +113,164 @@ const PRODUCT_CATALOG = [
     { id: 16, title: "Suede Handbag", category: "Accessories", info: "Classic suede handbag, gold accents, formal occasions" },
 ];
 
-// AI Recommendation Endpoint
+// Stop words for tokenizing
+const STOP_WORDS = new Set([
+    'a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'arent', 'as', 'at',
+    'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'cant', 'cannot', 'could',
+    'did', 'didnt', 'do', 'does', 'doesnt', 'doing', 'dont', 'down', 'during', 'each', 'few', 'for', 'from', 'further',
+    'had', 'hadnt', 'has', 'hasnt', 'have', 'havent', 'having', 'he', 'hed', 'hell', 'hes', 'her', 'here', 'heres',
+    'hers', 'herself', 'him', 'himself', 'his', 'how', 'hows', 'i', 'id', 'ill', 'im', 'ive', 'if', 'in', 'into', 'is',
+    'isnt', 'it', 'its', 'itself', 'lets', 'me', 'more', 'most', 'mustnt', 'my', 'myself', 'no', 'nor', 'not', 'of',
+    'off', 'on', 'once', 'only', 'or', 'other', 'ought', 'our', 'ours', 'ourselves', 'out', 'over', 'own', 'same',
+    'shant', 'she', 'shed', 'shell', 'shes', 'should', 'shouldnt', 'so', 'some', 'such', 'than', 'that', 'thats',
+    'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', 'theres', 'these', 'they', 'theyd', 'theyll',
+    'theyre', 'theyve', 'this', 'those', 'through', 'to', 'too', 'under', 'until', 'up', 'very', 'was', 'wasnt',
+    'we', 'wed', 'well', 'were', 'weve', 'werent', 'what', 'whats', 'when', 'whens', 'where', 'wheres', 'which',
+    'while', 'who', 'whos', 'whom', 'why', 'whys', 'with', 'wont', 'would', 'wouldnt', 'you', 'youd', 'youll',
+    'youre', 'youve', 'your', 'yours', 'yourself', 'yourselves'
+]);
+
+// Semantic groupings for expanded queries
+const SEMANTIC_GROUPS = [
+    {
+        keywords: ['lip', 'lips', 'lipstick', 'matte', 'moisturizing', 'moisturize', 'mouth'],
+        weight: 1.0
+    },
+    {
+        keywords: ['sun', 'sunscreen', 'spf', 'uv', 'protection', 'soothing', 'matte', 'block'],
+        weight: 1.0
+    },
+    {
+        keywords: ['perfume', 'fragrance', 'scent', 'deodorant', 'odour', 'smell', 'odor', 'body', 'channel', 'paris', 'spray'],
+        weight: 1.0
+    },
+    {
+        keywords: ['serum', 'hydration', 'facial', 'face', 'hyaluronic', 'vitamin', 'radiant', 'complexion', 'moisturize', 'moisturizing', 'skin'],
+        weight: 1.0
+    },
+    {
+        keywords: ['oil', 'treatment', 'nourishing', 'antioxidants', 'botanical', 'skin', 'skincare'],
+        weight: 1.0
+    },
+    {
+        keywords: ['hair', 'mask', 'conditioning', 'shine', 'softness', 'head', 'conditioner'],
+        weight: 1.0
+    },
+    {
+        keywords: ['brush', 'brushes', 'makeup', 'eyeshadow', 'foundation', 'cosmetics', 'applicator'],
+        weight: 1.0
+    },
+    {
+        keywords: ['polish', 'nail', 'nails', 'durable', 'color', 'paint'],
+        weight: 1.0
+    },
+    {
+        keywords: ['bag', 'handbag', 'sling', 'purse', 'leather', 'suede', 'accents', 'carry'],
+        weight: 1.0
+    },
+    {
+        keywords: ['watch', 'time', 'strap', 'luxury', 'sapphire', 'crystal', 'clock', 'wrist'],
+        weight: 1.0
+    },
+    {
+        keywords: ['necklace', 'chain', 'silver', 'cursive', 'sterling', 'jewellery', 'jewelry', 'pendant'],
+        weight: 1.0
+    },
+    {
+        keywords: ['ring', 'jewellery', 'jewelry', 'durable', 'accessories', 'finger'],
+        weight: 1.0
+    },
+    {
+        keywords: ['earring', 'earrings', 'jewelry', 'jewellery', 'set', 'classy', 'studs', 'ear'],
+        weight: 1.0
+    }
+];
+
+// Helper to tokenize and clean text
+function tokenize(text) {
+    if (!text) return [];
+    return text
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(token => token && !STOP_WORDS.has(token));
+}
+
+// Function to find the semantically closest products
+function getSemanticRecommendation(description) {
+    const queryTokens = tokenize(description);
+    if (queryTokens.length === 0) {
+        return PRODUCT_CATALOG[0].title;
+    }
+
+    // Expand query with synonyms / semantic matches
+    const expandedQuery = {};
+    queryTokens.forEach(token => {
+        expandedQuery[token] = (expandedQuery[token] || 0) + 1.0;
+        
+        SEMANTIC_GROUPS.forEach(group => {
+            if (group.keywords.includes(token)) {
+                group.keywords.forEach(keyword => {
+                    if (keyword !== token) {
+                        expandedQuery[keyword] = (expandedQuery[keyword] || 0) + 0.5;
+                    }
+                });
+            }
+        });
+    });
+
+    const scoredProducts = PRODUCT_CATALOG.map(product => {
+        const titleTokens = tokenize(product.title);
+        const categoryTokens = tokenize(product.category);
+        const infoTokens = tokenize(product.info);
+
+        let score = 0;
+
+        Object.entries(expandedQuery).forEach(([term, queryWeight]) => {
+            const titleCount = titleTokens.filter(t => t === term).length;
+            const categoryCount = categoryTokens.filter(t => t === term).length;
+            const infoCount = infoTokens.filter(t => t === term).length;
+
+            score += queryWeight * (titleCount * 3.0 + categoryCount * 1.5 + infoCount * 1.0);
+        });
+
+        // Add extra weight for exact title matches
+        queryTokens.forEach(token => {
+            if (titleTokens.includes(token)) {
+                score += 2.0;
+            }
+        });
+
+        return { id: product.id, title: product.title, score };
+    });
+
+    // Sort by score descending
+    scoredProducts.sort((a, b) => b.score - a.score);
+
+    const highestScore = scoredProducts[0].score;
+
+    if (highestScore <= 0) {
+        // No matches at all, fallback to the description itself
+        return description;
+    }
+
+    // Filter products: score >= 0.5 * highestScore (min score 1.0), max 4 products
+    const threshold = Math.max(1.0, highestScore * 0.5);
+    const matchedProducts = scoredProducts.filter(p => p.score >= threshold).slice(0, 4);
+
+    return "ids:" + matchedProducts.map(p => p.id).join(',');
+}
+
+// Semantic Recommendation Endpoint
 app.post('/api/ai/recommend', async (req, res) => {
     try {
         const { description } = req.body;
         if (!description) return res.status(400).json({ error: 'Description is required' });
 
-        const productList = PRODUCT_CATALOG.map(p => `- "${p.title}" (${p.category}): ${p.info}`).join('\n');
-
-        const prompt = `You are a product recommender for a cosmetics store.
-
-A user is looking for: "${description}"
-
-Here are the available products in our store:
-${productList}
-
-Based on the user's description, pick the SINGLE most relevant product from the list above. Return ONLY the exact product title as it appears in the list, nothing else. No explanation, no punctuation, just the exact title.`;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const keyword = response.text().trim().replace(/^["']|["']$/g, '');
-
+        const keyword = getSemanticRecommendation(description);
         res.json({ keyword });
     } catch (error) {
-        console.error('AI Recommendation Error:', error);
+        console.error('Semantic Recommendation Error:', error);
         res.status(500).json({ error: 'Failed to get recommendation' });
     }
 });
