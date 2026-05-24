@@ -549,6 +549,30 @@ class ProductProvider extends Component {
         });
     };
 
+    getRelatedProducts = (productId, limit = 4) => {
+        const currentProduct = this.state.products.find(p => p.id === productId);
+        if (!currentProduct) return [];
+
+        // Find products in the same category
+        const categoryProducts = this.state.products.filter(p =>
+            p.id !== productId &&
+            p.category &&
+            currentProduct.category &&
+            p.category.toLowerCase() === currentProduct.category.toLowerCase()
+        );
+
+        // If we have enough products in the same category, return them shuffled
+        if (categoryProducts.length > 0) {
+            const shuffled = [...categoryProducts].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, limit);
+        }
+
+        // Fallback: return random products excluding the current one
+        const otherProducts = this.state.products.filter(p => p.id !== productId);
+        const shuffled = [...otherProducts].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, limit);
+    };
+
     render() {
         return (
             <ProductContext.Provider value={{
@@ -568,7 +592,8 @@ class ProductProvider extends Component {
                 handleSearch: this.handleSearch,
                 setSearchTermDirectly: this.setSearchTermDirectly,
                 handleCategory: this.handleCategory,
-                getRecommendedProduct: this.getRecommendedProduct
+                getRecommendedProduct: this.getRecommendedProduct,
+                getRelatedProducts: this.getRelatedProducts
             }}>
                 {this.props.children}
 

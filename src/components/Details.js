@@ -4,6 +4,7 @@ import { AuthConsumer } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { ButtonContainer } from './Button';
 import Ratings from './Ratings';
+import RelatedProducts from './RelatedProducts';
 
 export default class Details extends Component {
     componentDidMount() {
@@ -107,6 +108,9 @@ export default class Details extends Component {
                                     </AuthConsumer>
                                 </div>
                             </div>
+
+                            {/* Related Products Section */}
+                            <RelatedProducts productId={id} />
 
                         </div>
                     )
