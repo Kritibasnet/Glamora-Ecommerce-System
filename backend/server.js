@@ -38,17 +38,47 @@ transporter.verify((error, success) => {
 // In-memory OTP Store (email -> { otp, expiresAt })
 const otpStore = new Map();
 
+const isVercel = process.env.VERCEL || process.env.NOW_BUILD_TRIGGER;
+const uploadDir = isVercel
+    ? '/tmp/uploads'
+    : path.join(__dirname, '..', 'uploads');
+
+if (isVercel) {
+    if (!fs.existsSync(uploadDir)) {
+        try {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        } catch (err) {
+            console.error('Error creating /tmp/uploads:', err);
+        }
+    }
+    // Copy existing uploads to /tmp/uploads
+    const srcUploadsDir = path.join(__dirname, '..', 'uploads');
+    if (fs.existsSync(srcUploadsDir)) {
+        try {
+            const files = fs.readdirSync(srcUploadsDir);
+            for (const file of files) {
+                const srcFile = path.join(srcUploadsDir, file);
+                const destFile = path.join(uploadDir, file);
+                if (!fs.existsSync(destFile)) {
+                    fs.copyFileSync(srcFile, destFile);
+                }
+            }
+            console.log('Uploads copied to /tmp/uploads');
+        } catch (err) {
+            console.error('Error copying uploads to /tmp/uploads:', err);
+        }
+    }
+} else {
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir);
+    }
+}
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
-}
+app.use('/uploads', express.static(uploadDir));
 
 // Multer Config
 const storage = multer.diskStorage({
@@ -1014,7 +1044,7 @@ app.post('/api/admin/products', authenticateToken, verifyAdmin, upload.single('i
             return res.status(400).json({ error: 'Missing required fields (title, price, company)' });
         }
         // Image is optional; provide placeholder if not uploaded
-        const imgPath = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : '';
+        const imgPath = req.file ? `/uploads/${req.file.filename}` : '';
         const product = await dbHelpers.addCustomProduct({
             title,
             img: imgPath,
@@ -1055,7 +1085,7 @@ app.put('/api/admin/products/:productId', authenticateToken, verifyAdmin, upload
         };
 
         if (req.file) {
-            productData.img = `http://localhost:5000/uploads/${req.file.filename}`;
+            productData.img = `/uploads/${req.file.filename}`;
         }
 
         let result;
@@ -1214,7 +1244,11 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`🚀 Glamora server running on port ${PORT}`);
-    console.log(`📡 API available at http://localhost:${PORT}/api`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`🚀 Glamora server running on port ${PORT}`);
+        console.log(`📡 API available at http://localhost:${PORT}/api`);
+    });
+}
+
+module.exports = app;

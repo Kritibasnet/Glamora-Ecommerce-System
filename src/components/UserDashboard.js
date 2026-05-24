@@ -28,7 +28,7 @@ export default class UserDashboard extends Component {
         if (!token) return;
 
         try {
-            const response = await fetch('http://localhost:5000/api/orders', {
+            const response = await fetch('/api/orders', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -50,7 +50,7 @@ export default class UserDashboard extends Component {
         if (!token) return;
 
         try {
-            const response = await fetch('http://localhost:5000/api/loyalty-codes', {
+            const response = await fetch('/api/loyalty-codes', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -83,7 +83,7 @@ export default class UserDashboard extends Component {
         const token = localStorage.getItem('glamora_token');
 
         try {
-            const response = await fetch(`http://localhost:5000/api/orders/${selectedOrderForRefund.id}/refund`, {
+            const response = await fetch(`/api/orders/${selectedOrderForRefund.id}/refund`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

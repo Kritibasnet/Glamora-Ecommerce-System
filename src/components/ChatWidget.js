@@ -28,7 +28,7 @@ const ChatWidget = () => {
         if (!token) return;
 
         try {
-            const response = await fetch('http://localhost:5000/api/messages', {
+            const response = await fetch('/api/messages', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -50,7 +50,7 @@ const ChatWidget = () => {
         setLoading(true);
 
         try {
-            await fetch('http://localhost:5000/api/messages', {
+            await fetch('/api/messages', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

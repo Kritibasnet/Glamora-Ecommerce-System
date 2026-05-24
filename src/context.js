@@ -110,7 +110,7 @@ class ProductProvider extends Component {
         // Fetch deleted products from backend
         let deletedProductIds = [];
         try {
-            const response = await fetch('http://localhost:5000/api/admin/deleted-products');
+            const response = await fetch('/api/admin/deleted-products');
             if (response.ok) {
                 const deletedProducts = await response.json();
                 deletedProductIds = deletedProducts.map(dp => parseInt(dp.product_id));
@@ -138,7 +138,7 @@ class ProductProvider extends Component {
 
     fetchCustomProducts = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/products');
+            const response = await fetch('/api/products');
             if (response.ok) {
                 const data = await response.json();
 
@@ -196,7 +196,7 @@ class ProductProvider extends Component {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/orders', {
+            const response = await fetch('/api/orders', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -292,7 +292,7 @@ class ProductProvider extends Component {
 
         try {
             console.log('Fetching cart from backend...');
-            const response = await fetch('http://localhost:5000/api/cart', {
+            const response = await fetch('/api/cart', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -350,7 +350,7 @@ class ProductProvider extends Component {
 
         try {
             console.log(`Saving cart item to backend: ID=${id}, Count=${count}`);
-            const response = await fetch('http://localhost:5000/api/cart', {
+            const response = await fetch('/api/cart', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -372,7 +372,7 @@ class ProductProvider extends Component {
         if (!token) return { success: false, error: 'Please login to checkout' };
 
         try {
-            const response = await fetch('http://localhost:5000/api/orders', {
+            const response = await fetch('/api/orders', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -528,7 +528,7 @@ class ProductProvider extends Component {
             // Clear from backend
             const token = localStorage.getItem('glamora_token');
             if (token) {
-                fetch('http://localhost:5000/api/cart', {
+                fetch('/api/cart', {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

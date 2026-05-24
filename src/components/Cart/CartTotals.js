@@ -23,7 +23,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
             
             console.log("Generating eSewa signature for total:", cartTotal);
 
-            fetch('http://localhost:5000/api/esewa/generate-signature', {
+            fetch('/api/esewa/generate-signature', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
         if (!loyaltyCode) return;
         const token = localStorage.getItem('glamora_token');
         try {
-            const res = await fetch('http://localhost:5000/api/loyalty-codes/validate', {
+            const res = await fetch('/api/loyalty-codes/validate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ code: loyaltyCode })

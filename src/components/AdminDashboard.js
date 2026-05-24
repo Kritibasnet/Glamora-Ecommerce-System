@@ -62,12 +62,12 @@ export default class AdminDashboard extends Component {
 
         try {
             const [statsRes, usersRes, ordersRes, analyticsRes, deletedRes, productsRes] = await Promise.all([
-                fetch('http://localhost:5000/api/admin/stats', { headers }),
-                fetch('http://localhost:5000/api/admin/users', { headers }),
-                fetch('http://localhost:5000/api/admin/orders', { headers }),
-                fetch('http://localhost:5000/api/admin/analytics', { headers }),
-                fetch('http://localhost:5000/api/admin/deleted-products', { headers }),
-                fetch('http://localhost:5000/api/products')
+                fetch('/api/admin/stats', { headers }),
+                fetch('/api/admin/users', { headers }),
+                fetch('/api/admin/orders', { headers }),
+                fetch('/api/admin/analytics', { headers }),
+                fetch('/api/admin/deleted-products', { headers }),
+                fetch('/api/products')
             ]);
 
             if (statsRes.ok && usersRes.ok && ordersRes.ok && analyticsRes.ok && deletedRes.ok && productsRes.ok) {
@@ -109,7 +109,7 @@ export default class AdminDashboard extends Component {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         try {
-            const res = await fetch(`http://localhost:5000/api/admin/orders/${orderId}`, {
+            const res = await fetch(`/api/admin/orders/${orderId}`, {
                 method: 'DELETE',
                 headers
             });
@@ -130,7 +130,7 @@ export default class AdminDashboard extends Component {
     fetchConversations = async () => {
         const token = localStorage.getItem('glamora_token');
         try {
-            const response = await fetch('http://localhost:5000/api/admin/conversations', {
+            const response = await fetch('/api/admin/conversations', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -145,7 +145,7 @@ export default class AdminDashboard extends Component {
     fetchUserMessages = async (userId) => {
         const token = localStorage.getItem('glamora_token');
         try {
-            const response = await fetch(`http://localhost:5000/api/admin/messages/${userId}`, {
+            const response = await fetch(`/api/admin/messages/${userId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -164,7 +164,7 @@ export default class AdminDashboard extends Component {
 
         const token = localStorage.getItem('glamora_token');
         try {
-            await fetch(`http://localhost:5000/api/admin/messages/${selectedConversation}`, {
+            await fetch(`/api/admin/messages/${selectedConversation}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ export default class AdminDashboard extends Component {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         try {
-            const res = await fetch(`http://localhost:5000/api/admin/orders/${orderId}/refund-${action}`, {
+            const res = await fetch(`/api/admin/orders/${orderId}/refund-${action}`, {
                 method: 'POST',
                 headers
             });
@@ -216,7 +216,7 @@ export default class AdminDashboard extends Component {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         try {
-            const res = await fetch(`http://localhost:5000/api/admin/products/${productId}`, {
+            const res = await fetch(`/api/admin/products/${productId}`, {
                 method: 'DELETE',
                 headers
             });
@@ -243,7 +243,7 @@ export default class AdminDashboard extends Component {
         const headers = { 'Authorization': `Bearer ${token}` };
 
         try {
-            const res = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+            const res = await fetch(`/api/admin/users/${userId}`, {
                 method: 'DELETE',
                 headers
             });
@@ -299,7 +299,7 @@ export default class AdminDashboard extends Component {
         const token = localStorage.getItem('glamora_token');
 
         try {
-            const res = await fetch('http://localhost:5000/api/admin/products', {
+            const res = await fetch('/api/admin/products', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -380,7 +380,7 @@ export default class AdminDashboard extends Component {
         const token = localStorage.getItem('glamora_token');
 
         try {
-            const res = await fetch(`http://localhost:5000/api/admin/products/${editingProduct.id}`, {
+            const res = await fetch(`/api/admin/products/${editingProduct.id}`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`

@@ -21,7 +21,7 @@ class AuthProvider extends Component {
 
         if (token && user) {
             // Verify token with backend
-            fetch('http://localhost:5000/api/verify', {
+            fetch('/api/verify', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -50,7 +50,7 @@ class AuthProvider extends Component {
 
     login = async (email, password) => {
         try {
-            const response = await fetch('http://localhost:5000/api/login', {
+            const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -82,7 +82,7 @@ class AuthProvider extends Component {
 
     sendOtp = async (email) => {
         try {
-            const response = await fetch('http://localhost:5000/api/send-otp', {
+            const response = await fetch('/api/send-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -105,7 +105,7 @@ class AuthProvider extends Component {
 
     register = async (username, email, password, otp, location = '', phone = '') => {
         try {
-            const response = await fetch('http://localhost:5000/api/register', {
+            const response = await fetch('/api/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -153,7 +153,7 @@ class AuthProvider extends Component {
 
     forgotPassword = async (email) => {
         try {
-            const response = await fetch('http://localhost:5000/api/forgot-password', {
+            const response = await fetch('/api/forgot-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -176,7 +176,7 @@ class AuthProvider extends Component {
 
     updateProfile = async (username, location, phone) => {
         try {
-            const response = await fetch('http://localhost:5000/api/profile', {
+            const response = await fetch('/api/profile', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -203,7 +203,7 @@ class AuthProvider extends Component {
 
     resetPassword = async (email, otp, newPassword) => {
         try {
-            const response = await fetch('http://localhost:5000/api/reset-password', {
+            const response = await fetch('/api/reset-password', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

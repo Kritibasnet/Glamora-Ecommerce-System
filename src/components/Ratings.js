@@ -36,7 +36,7 @@ class Ratings extends Component {
 
     fetchRatings = async () => {
         try {
-            const response = await fetch('http://localhost:5000/api/ratings');
+            const response = await fetch('/api/ratings');
             const data = await response.json();
 
             if (response.ok) {
@@ -89,7 +89,7 @@ if (!newRating.productId) {
         this.setState({ submitting: true });
 
         try {
-            const response = await fetch('http://localhost:5000/api/ratings', {
+            const response = await fetch('/api/ratings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

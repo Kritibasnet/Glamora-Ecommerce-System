@@ -59,7 +59,7 @@ function EsewaSuccess() {
 
                     try {
                         console.log('Verifying eSewa payment...');
-                        const response = await fetch('http://localhost:5000/api/esewa/verify', {
+                        const response = await fetch('/api/esewa/verify', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

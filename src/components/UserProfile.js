@@ -22,7 +22,7 @@ export default class UserProfile extends Component {
         if (!token) return;
 
         try {
-            const response = await fetch('http://localhost:5000/api/profile', {
+            const response = await fetch('/api/profile', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
