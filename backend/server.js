@@ -1,4 +1,3 @@
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -21,8 +20,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'glamora-secret-key-2025';
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        user: 'glamoranepal221@gmail.com',
+        pass: process.env.smtp_pass
     }
 });
 
