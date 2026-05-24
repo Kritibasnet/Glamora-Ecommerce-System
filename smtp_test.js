@@ -4,11 +4,12 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: 'glamoranepal221@gmail.com',
-        pass: ''
+        pass: process.env.smtp_pass
     }
 });
 
 console.log('Testing SMTP connection with new password...');
+
 transporter.verify((error, success) => {
     if (error) {
         console.error('❌ Connection Error:', error);
