@@ -1,26 +1,8 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const fs = require('fs');
-
-const isVercel = process.env.VERCEL || process.env.NOW_BUILD_TRIGGER;
-
-const dbPath = isVercel
-    ? '/tmp/glamora.db'
-    : path.join(__dirname, 'glamora.db');
-
-if (isVercel) {
-    const srcDbPath = path.join(__dirname, 'glamora.db');
-    if (fs.existsSync(srcDbPath) && !fs.existsSync(dbPath)) {
-        try {
-            fs.copyFileSync(srcDbPath, dbPath);
-            console.log('Database copied to /tmp/glamora.db');
-        } catch (err) {
-            console.error('Error copying database to /tmp/glamora.db:', err);
-        }
-    }
-}
 
 // Create database connection
+const dbPath = path.join(__dirname, 'glamora.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database:', err.message);
@@ -759,8 +741,8 @@ const dbHelpers = {
                 let sql, params;
                 if (productId >= 1000) {
                     // Custom product
-                    sql = 'UPDATE custom_products SET stock_count = MAX(0, stock_count - ?) WHERE id = ?';
-                    params = [quantity, productId - 1000];
+                    sql = 'UPDATE custom_products SET stock_count = MAX(0, stock_count - ?), in_stock = CASE WHEN MAX(0, stock_count - ?) > 0 THEN 1 ELSE 0 END WHERE id = ?';
+                    params = [quantity, quantity, productId - 1000];
                 } else {
                     // Static product - first check if override exists
                     const row = await new Promise((res, rej) => {
@@ -770,14 +752,15 @@ const dbHelpers = {
                     });
 
                     if (row) {
-                        sql = 'UPDATE static_products SET stock_count = MAX(0, stock_count - ?) WHERE id = ?';
-                        params = [quantity, productId];
+                        sql = 'UPDATE static_products SET stock_count = MAX(0, stock_count - ?), in_stock = CASE WHEN MAX(0, stock_count - ?) > 0 THEN 1 ELSE 0 END WHERE id = ?';
+                        params = [quantity, quantity, productId];
                     } else {
                         // Create override with initial deterministic stock minus quantity
                         // Even IDs = 200, Odd IDs = 150
                         const initialStock = (productId % 2 === 0) ? 200 : 150;
+                        const newStock = initialStock - quantity;
                         sql = 'INSERT INTO static_products (id, stock_count, in_stock) VALUES (?, ?, ?)';
-                        params = [productId, initialStock - quantity, 1];
+                        params = [productId, newStock, newStock > 0 ? 1 : 0];
                     }
                 }
 
