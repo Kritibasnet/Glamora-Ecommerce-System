@@ -1,3 +1,4 @@
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -20,8 +21,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'glamora-secret-key-2025';
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'glamoranepal221@gmail.com',
-        pass: process.env.smtp_pass
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
     }
 });
 
@@ -37,47 +38,17 @@ transporter.verify((error, success) => {
 // In-memory OTP Store (email -> { otp, expiresAt })
 const otpStore = new Map();
 
-const isVercel = process.env.VERCEL || process.env.NOW_BUILD_TRIGGER;
-const uploadDir = isVercel
-    ? '/tmp/uploads'
-    : path.join(__dirname, '..', 'uploads');
-
-if (isVercel) {
-    if (!fs.existsSync(uploadDir)) {
-        try {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        } catch (err) {
-            console.error('Error creating /tmp/uploads:', err);
-        }
-    }
-    // Copy existing uploads to /tmp/uploads
-    const srcUploadsDir = path.join(__dirname, '..', 'uploads');
-    if (fs.existsSync(srcUploadsDir)) {
-        try {
-            const files = fs.readdirSync(srcUploadsDir);
-            for (const file of files) {
-                const srcFile = path.join(srcUploadsDir, file);
-                const destFile = path.join(uploadDir, file);
-                if (!fs.existsSync(destFile)) {
-                    fs.copyFileSync(srcFile, destFile);
-                }
-            }
-            console.log('Uploads copied to /tmp/uploads');
-        } catch (err) {
-            console.error('Error copying uploads to /tmp/uploads:', err);
-        }
-    }
-} else {
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir);
-    }
-}
-
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use('/uploads', express.static(uploadDir));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
 
 // Multer Config
 const storage = multer.diskStorage({
@@ -1038,12 +1009,13 @@ app.get('/api/admin/deleted-products', async (req, res) => {
 // Admin Add Product (Protected)
 app.post('/api/admin/products', authenticateToken, verifyAdmin, upload.single('image'), async (req, res) => {
     try {
-        const { title, price, company, category, info, inStock, stockCount } = req.body;
+        const { title, price, company, category, info, stockCount } = req.body;
         if (!title || !price || !company) {
             return res.status(400).json({ error: 'Missing required fields (title, price, company)' });
         }
         // Image is optional; provide placeholder if not uploaded
-        const imgPath = req.file ? `/uploads/${req.file.filename}` : '';
+        const imgPath = req.file ? `http://localhost:5000/uploads/${req.file.filename}` : '';
+        const parsedStock = parseInt(stockCount) || 0;
         const product = await dbHelpers.addCustomProduct({
             title,
             img: imgPath,
@@ -1051,8 +1023,8 @@ app.post('/api/admin/products', authenticateToken, verifyAdmin, upload.single('i
             company,
             category: category || 'General',
             info: info || '',
-            inStock: inStock === 'true' || inStock === true || true,
-            stockCount: parseInt(stockCount) || 100
+            inStock: parsedStock > 0,
+            stockCount: parsedStock
         });
         res.status(201).json({ message: 'Product added successfully', product });
     } catch (error) {
@@ -1073,18 +1045,19 @@ app.put('/api/admin/products/:productId', authenticateToken, verifyAdmin, upload
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        const parsedStock = parseInt(req.body.stockCount) || 0;
         const productData = {
             title,
             price: parseFloat(price),
             company,
             category: category || 'General',
             info: info || '',
-            inStock: req.body.inStock === 'true' || req.body.inStock === true,
-            stockCount: parseInt(req.body.stockCount) || 0
+            inStock: parsedStock > 0,
+            stockCount: parsedStock
         };
 
         if (req.file) {
-            productData.img = `/uploads/${req.file.filename}`;
+            productData.img = `http://localhost:5000/uploads/${req.file.filename}`;
         }
 
         let result;
@@ -1243,11 +1216,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-if (require.main === module) {
-    app.listen(PORT, () => {
-        console.log(`🚀 Glamora server running on port ${PORT}`);
-        console.log(`📡 API available at http://localhost:${PORT}/api`);
-    });
-}
-
-module.exports = app;
+app.listen(PORT, () => {
+    console.log(`🚀 Glamora server running on port ${PORT}`);
+    console.log(`📡 API available at http://localhost:${PORT}/api`);
+});
