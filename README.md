@@ -41,7 +41,7 @@ A modern, feature-rich React-based e-commerce application for cosmetics and beau
 #### Option 1: Run Both Frontend and Backend Together (Recommended)
 ```bash
 npm run dev
-```
+```a
 This will start:
 - Backend server on `http://localhost:5000`
 - Frontend React app on `http://localhost:3000`
