@@ -23,7 +23,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
             
             console.log("Generating eSewa signature for total:", cartTotal);
 
-            fetch('/api/esewa/generate-signature', {
+            fetch('http://localhost:5000/api/esewa/generate-signature', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -34,25 +34,30 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                     transaction_uuid: uuid
                 })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`Backend error: ${res.status}`);
+                return res.json();
+            })
             .then(data => {
                 if (data.signature) {
-                    console.log("Signature received from backend");
+                    console.log("✓ Signature received from backend:", data.signature.substring(0, 20) + '...');
                     setEsewaData({
                         signature: data.signature,
                         transaction_uuid: uuid,
                         product_code: data.product_code
                     });
                 } else {
-                    throw new Error("No signature in response");
+                    throw new Error("No signature in backend response");
                 }
             })
             .catch(err => {
-                console.warn('Backend signature failed, using frontend fallback:', err);
+                console.warn('Backend signature failed, using frontend fallback:', err.message);
                 // Fallback to frontend generation
                 const hashString = `total_amount=${cartTotal},transaction_uuid=${uuid},product_code=${PRODUCT_CODE}`;
                 const hash = CryptoJS.HmacSHA256(hashString, SECRET);
                 const signature = CryptoJS.enc.Base64.stringify(hash);
+                
+                console.log("✓ Generated signature via fallback:", signature.substring(0, 20) + '...');
                 
                 setEsewaData({
                     signature: signature,
@@ -109,6 +114,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
     };
 
     const isFormValid = addressForm.country && addressForm.city && addressForm.postCode && addressForm.contact && paymentMethod;
+    const isEsewaReady = esewaData.signature && paymentMethod === 'online';
     const coordinatesStr = latitude && longitude ? ` [GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}]` : '';
     const combinedAddress = `${addressForm.location || '(Map Location)'}, ${addressForm.city}, ${addressForm.country} (ZIP: ${addressForm.postCode}, Contact: ${addressForm.contact})${coordinatesStr}`;
 
@@ -116,7 +122,7 @@ function CartTotals({ value, history, setShowSuccessModal }) {
         if (!loyaltyCode) return;
         const token = localStorage.getItem('glamora_token');
         try {
-            const res = await fetch('/api/loyalty-codes/validate', {
+            const res = await fetch('http://localhost:5000/api/loyalty-codes/validate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ code: loyaltyCode })
@@ -138,6 +144,13 @@ function CartTotals({ value, history, setShowSuccessModal }) {
     const finalTotal = cartTotal - discount;
 
     const handleCheckout = async (e) => {
+        // Validate required fields for both payment methods
+        if (!addressForm.country || !addressForm.city || !addressForm.postCode || !addressForm.contact) {
+            e.preventDefault();
+            setMessage('❌ Please fill all delivery details before proceeding.');
+            return;
+        }
+
         // If it's a form submission (eSewa), we don't preventDefault so it redirects
         // But we need to save the checkout info for the success page
         if (paymentMethod === 'online') {
@@ -343,27 +356,41 @@ function CartTotals({ value, history, setShowSuccessModal }) {
                                 {loading ? 'Processing...' : 'Place Order (Cash on Delivery)'}
                             </button>
                         ) : (
-                            <form action="https://rc-epay.esewa.com.np/api/epay/main/v2/form" method="POST" onSubmit={handleCheckout}>
-                                <input value={finalTotal} name="amount" type="hidden" />
-                                <input value="0" name="tax_amount" type="hidden" />
-                                <input value={finalTotal} name="total_amount" type="hidden" />
-                                <input value={esewaData.transaction_uuid} name="transaction_uuid" type="hidden" />
-                                <input value={esewaData.product_code} name="product_code" type="hidden" />
-                                <input value="0" name="product_service_charge" type="hidden" />
-                                <input value="0" name="product_delivery_charge" type="hidden" />
-                                <input value={`${window.location.origin}/esewa-success`} type="hidden" name="success_url" />
-                                <input value={`${window.location.origin}/esewa-failure`} type="hidden" name="failure_url" />
-                                <input value="total_amount,transaction_uuid,product_code" type="hidden" name="signed_field_names" />
-                                <input value={esewaData.signature} type="hidden" name="signature" />
-                                <button
-                                    className="btn text-uppercase mb-3 px-5 w-100"
-                                    type="submit"
-                                    style={{ backgroundColor: '#41A124', color: 'white', fontWeight: 'bold' }}
-                                    disabled={!esewaData.signature || !isFormValid}
-                                >
-                                    Pay with eSewa (v2)
-                                </button>
-                            </form>
+                            <>
+                                {!esewaData.signature && (
+                                    <div className="alert alert-info mb-3">
+                                        <strong>⏳ Generating eSewa payment signature...</strong><br/>
+                                        <small>This may take a moment. If stuck, please refresh the page.</small>
+                                    </div>
+                                )}
+                                <form action="https://rc-epay.esewa.com.np/api/epay/main/v2/form" method="POST" onSubmit={handleCheckout}>
+                                    <input value={finalTotal} name="amount" type="hidden" />
+                                    <input value="0" name="tax_amount" type="hidden" />
+                                    <input value={finalTotal} name="total_amount" type="hidden" />
+                                    <input value={esewaData.transaction_uuid} name="transaction_uuid" type="hidden" />
+                                    <input value={esewaData.product_code} name="product_code" type="hidden" />
+                                    <input value="0" name="product_service_charge" type="hidden" />
+                                    <input value="0" name="product_delivery_charge" type="hidden" />
+                                    <input value={`${window.location.origin}/esewa-success`} type="hidden" name="success_url" />
+                                    <input value={`${window.location.origin}/esewa-failure`} type="hidden" name="failure_url" />
+                                    <input value="total_amount,transaction_uuid,product_code" type="hidden" name="signed_field_names" />
+                                    <input value={esewaData.signature} type="hidden" name="signature" />
+                                    <button
+                                        className="btn text-uppercase mb-3 px-5 w-100"
+                                        type="submit"
+                                        style={{ 
+                                            backgroundColor: isEsewaReady ? '#41A124' : '#ccc', 
+                                            color: 'white', 
+                                            fontWeight: 'bold',
+                                            cursor: isEsewaReady ? 'pointer' : 'not-allowed'
+                                        }}
+                                        disabled={!isEsewaReady}
+                                        title={!esewaData.signature ? 'Generating signature...' : paymentMethod !== 'online' ? 'Select eSewa payment method' : 'Click to pay with eSewa'}
+                                    >
+                                        {!esewaData.signature ? 'Loading eSewa...' : 'Pay with eSewa (v2)'}
+                                    </button>
+                                </form>
+                            </>
                         )}
                     </div>
                 </div>
