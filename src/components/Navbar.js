@@ -237,20 +237,18 @@ class Navbar extends Component {
                             onSubmit={(e) => this.handleAiSearch(e, productValue.setSearchTermDirectly)}
                           >
                             <div className="ai-search-wrapper">
-                              <span className="ai-icon" title="AI Powered">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5L12 2Z"/>
-                                </svg>
+                              <span className="ai-icon">
+                                <SearchIcon style={{ fontSize: '0.9rem', color: 'white', opacity: 0.7 }} />
                               </span>
                               <input
                                 type="text"
-                                placeholder="Describe a product..."
+                                placeholder="Search products..."
                                 value={aiQuery}
                                 onChange={(e) => this.setState({ aiQuery: e.target.value })}
                                 className="ai-search-input"
                               />
-                              <button type="submit" className="ai-search-btn" disabled={aiLoading}>
-                                {aiLoading ? '...' : 'AI'}
+                              <button type="submit" className="ai-search-btn" disabled={aiLoading} title="Search">
+                                {aiLoading ? <SearchIcon style={{ fontSize: '0.9rem' }} /> : <SearchIcon style={{ fontSize: '0.9rem' }} />}
                               </button>
                             </div>
                           </form>
@@ -404,15 +402,11 @@ const NavWrapper = styled.nav`
   }
 
   .ai-icon {
-    padding: 0 0.5rem 0 0.7rem;
+    padding: 0 0.5rem 0 0.5rem;
     display: flex;
     align-items: center;
-    opacity: 0.9;
-    animation: pulse 2s infinite;
-    @keyframes pulse {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
   }
 
   .ai-search-input {
@@ -429,35 +423,32 @@ const NavWrapper = styled.nav`
     }
 
     &::placeholder {
-      color: rgba(255, 255, 255, 0.75);
-      font-style: italic;
+      color: rgba(255, 255, 255, 0.5);
+      font-style: normal;
     }
   }
 
   .ai-search-btn {
-    background: rgba(255,255,255,0.25);
+    background: transparent;
     border: none;
     color: white;
-    font-weight: 700;
-    font-size: 0.72rem;
-    padding: 0.3rem 0.7rem;
+    padding: 0.3rem 0.6rem;
     cursor: pointer;
-    letter-spacing: 0.5px;
     transition: background 0.2s ease;
     height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.8;
 
     &:hover {
-      background: rgba(255,255,255,0.4);
+      opacity: 1;
+      background: rgba(255,255,255,0.1);
     }
 
     &:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
-    }
-  }
-
-    &::placeholder {
-      color: rgba(255, 255, 255, 0.8);
     }
   }
 
