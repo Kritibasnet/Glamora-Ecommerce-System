@@ -13,6 +13,7 @@ class ProductProvider extends Component {
         products: [],
         detailProduct: detailProduct,
         cart: [],
+        cartLoaded: false,
         modalOpen: false,
         modalProduct: detailProduct,
         cartSubTotal: 0,
@@ -282,10 +283,13 @@ class ProductProvider extends Component {
             if (localCart) {
                 try {
                     const cartItems = JSON.parse(localCart);
-                    this.setState({ cart: cartItems }, () => this.addTotals());
+                    this.setState({ cart: cartItems, cartLoaded: true }, () => this.addTotals());
                 } catch (e) {
                     console.error('Error parsing local cart:', e);
+                    this.setState({ cartLoaded: true });
                 }
+            } else {
+                this.setState({ cart: [], cartLoaded: true });
             }
             return;
         }
@@ -326,7 +330,8 @@ class ProductProvider extends Component {
                 console.log('Final tempCart to be set in state:', tempCart);
                 this.setState({
                     cart: tempCart,
-                    products: tempProducts
+                    products: tempProducts,
+                    cartLoaded: true
                 }, () => {
                     this.addTotals();
                     // Also save to localStorage as backup
@@ -334,9 +339,11 @@ class ProductProvider extends Component {
                 });
             } else {
                 console.error('Failed to fetch cart:', response.statusText);
+                this.setState({ cartLoaded: true });
             }
         } catch (error) {
             console.error('Error loading cart:', error);
+            this.setState({ cartLoaded: true });
         }
     };
 
