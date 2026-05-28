@@ -18,11 +18,19 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'glamora-secret-key-2025';
 
 // NodeMailer Config (Gmail SMTP)
+// Support both uppercase and lowercase env vars, plus fallback to hardcoded email
+const smtpUser = process.env.SMTP_USER || process.env.smtp_user || 'glamoranepal221@gmail.com';
+const smtpPass = process.env.SMTP_PASS || process.env.smtp_pass;
+
+if (!smtpPass) {
+    console.warn('⚠️ WARNING: SMTP password not set. OTP emails will fail. Set SMTP_PASS or smtp_pass env variable.');
+}
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
+        user: smtpUser,
+        pass: smtpPass
     }
 });
 
