@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useRef } from 'react';
 import { useHistory, useLocation } from 'react-router-dom';
 import { ProductConsumer } from '../context';
 import { AuthContext } from '../context/AuthContext';
@@ -11,23 +11,24 @@ function EsewaSuccess() {
     const auth = useContext(AuthContext);
     const [status, setStatus] = useState('Verifying Payment...');
     const [message, setMessage] = useState('Please wait while we process your order...');
-    const [processed, setProcessed] = useState(false);
-    
-    // States for PDF generation
     const [orderDetails, setOrderDetails] = useState(null);
     const [transactionId, setTransactionId] = useState('');
-    
-    // State for Loyalty Popup
     const [showLoyalty, setShowLoyalty] = useState(false);
     const [itemsPurchased, setItemsPurchased] = useState(0);
+
+    // Use a ref instead of state for the processed lock — 
+    // ref updates are synchronous and don't trigger re-renders
+    const processedRef = useRef(false);
 
     return (
         <ProductConsumer>
             {value => {
-                const { cart, checkout, loadCart, cartLoaded } = value;
+                const { cart, checkout, cartLoaded } = value;
 
                 const handleProcess = async () => {
-                    if (processed) return;
+                    // Synchronous guard — prevents double execution
+                    if (processedRef.current) return;
+                    processedRef.current = true;
 
                     const queryParams = new URLSearchParams(location.search);
                     const data = queryParams.get('data');
@@ -47,18 +48,7 @@ function EsewaSuccess() {
                         return;
                     }
 
-                    // If cart is empty, we must wait for it. 
-                    // ProductProvider should have started loadCart on mount.
-                    if (cart.length === 0) {
-                        console.log('Cart is empty, waiting for it to load...');
-                        return; // Exit and wait for the next render when cart is populated
-                    }
-
-                    // Lock to prevent multiple calls
-                    setProcessed(true);
-
                     try {
-                        console.log('Verifying eSewa payment...');
                         const response = await fetch('http://localhost:5000/api/esewa/verify', {
                             method: 'POST',
                             headers: {
@@ -73,40 +63,30 @@ function EsewaSuccess() {
                         if (response.ok && resultData.success) {
                             setStatus('Payment Verified!');
                             setMessage('Finalizing your order...');
-                            console.log('Payment verified, proceeding to checkout...');
 
-                            // Save cart and total before checkout clears it
                             const currentCart = [...cart];
-                            
-                            // Retrieve pending checkout details (loyalty code, discounted total, address)
                             const pendingStr = localStorage.getItem('glamora_pending_checkout');
                             const pendingData = pendingStr ? JSON.parse(pendingStr) : null;
-                            
                             const currentTotal = pendingData ? pendingData.finalTotal : value.cartTotal;
                             const loyaltyCode = pendingData ? pendingData.loyaltyCode : null;
                             const address = pendingData ? pendingData.address : '';
 
-                            // Proceed to create the order
                             const result = await checkout(loyaltyCode, currentTotal, 'online', address);
 
                             if (result.success) {
-                                // Clear pending data
+                                // Set flag to skip loading cart on the success page after checkout
+                                localStorage.setItem('glamora_skip_cart_load', 'true');
                                 localStorage.removeItem('glamora_pending_checkout');
-                                
                                 setStatus('Success!');
                                 setMessage('Order placed successfully! You can now download your receipt.');
                                 setOrderDetails({ cart: currentCart, total: currentTotal });
                                 setTransactionId(data || 'TRX-' + Math.floor(Date.now() / 1000));
-                                
-                                // Calculate total items in this order to show loyalty popup
                                 const itemCount = currentCart.reduce((total, item) => total + item.count, 0);
                                 setItemsPurchased(itemCount);
-                                // Show popup after a slight delay for better UX
                                 setTimeout(() => setShowLoyalty(true), 1500);
                             } else {
                                 setStatus('Order Placement Failed');
-                                setMessage(result.error || 'The payment was successful, but we encountered an issue placing your order. Please contact support.');
-                                console.error('Checkout failed after successful payment:', result.error);
+                                setMessage(result.error || 'Payment succeeded but order failed. Please contact support.');
                             }
                         } else {
                             setStatus('Verification Failed');
@@ -121,42 +101,45 @@ function EsewaSuccess() {
                     }
                 };
 
-                // Trigger process if we have cart items and haven't started yet
-                if (!processed && cart.length > 0) {
-                    handleProcess();
-                } else if (!processed && cartLoaded && cart.length === 0) {
-                    // Cart has loaded and is empty. Check if order was already processed or if there's no pending checkout.
-                    const pendingStr = localStorage.getItem('glamora_pending_checkout');
-                    if (!pendingStr) {
-                        setProcessed(true);
-                        setStatus('Already Processed');
-                        setMessage('Your order has already been finalized, or no pending order was found. Redirecting...');
-                        setTimeout(() => history.push('/user-dashboard'), 3000);
+                // ✅ Only trigger once cart has fully loaded
+                if (!processedRef.current && cartLoaded) {
+                    if (cart.length > 0) {
+                        handleProcess();
                     } else {
-                        setProcessed(true);
-                        setStatus('Checkout Error');
-                        setMessage('Your cart is empty. If you have already paid, please check your Dashboard.');
-                        setTimeout(() => history.push('/user-dashboard'), 4000);
+                        // Cart loaded but empty — check for pending checkout
+                        processedRef.current = true;
+                        const pendingStr = localStorage.getItem('glamora_pending_checkout');
+                        if (!pendingStr) {
+                            setStatus('Already Processed');
+                            setMessage('Your order has already been finalized. Redirecting...');
+                        } else {
+                            setStatus('Checkout Error');
+                            setMessage('Your cart is empty. If you already paid, please check your Dashboard.');
+                        }
+                        setTimeout(() => history.push('/user-dashboard'), 3000);
                     }
                 }
+
+                const isError = status.includes('Error') || status.includes('Failed');
 
                 return (
                     <div className="container mt-5 text-center">
                         <div className="row">
                             <div className="col-10 mx-auto text-center text-title text-capitalize pt-5">
-                                <h1 className={`display-3 ${status.includes('Error') || status.includes('Failed') ? 'text-danger' : 'text-success'}`}>
+                                <h1 className={`display-3 ${isError ? 'text-danger' : 'text-success'}`}>
                                     {status}
                                 </h1>
                                 <h2 className="mt-4">{message}</h2>
+
                                 {status === 'Success!' && orderDetails && (
                                     <div className="mt-5 d-flex justify-content-center flex-wrap" style={{ gap: '15px' }}>
-                                        <button 
+                                        <button
                                             className="btn btn-outline-success btn-lg px-4"
                                             onClick={() => generatePaymentSlip(orderDetails.cart, orderDetails.total, auth.user, transactionId)}
                                         >
                                             Download Payment Slip (PDF)
                                         </button>
-                                        <button 
+                                        <button
                                             className="btn btn-primary btn-lg px-4"
                                             onClick={() => history.push('/user-dashboard')}
                                         >
@@ -164,7 +147,9 @@ function EsewaSuccess() {
                                         </button>
                                     </div>
                                 )}
-                                {!processed && !cartLoaded && (
+
+                                {/* Show spinner only while cart is still loading */}
+                                {!cartLoaded && (
                                     <div className="mt-4">
                                         <div className="spinner-border text-primary" role="status">
                                             <span className="sr-only">Loading...</span>
@@ -174,10 +159,10 @@ function EsewaSuccess() {
                                 )}
                             </div>
                         </div>
-                        <LoyaltyPopup 
-                            show={showLoyalty} 
-                            onClose={() => setShowLoyalty(false)} 
-                            purchasedToday={itemsPurchased} 
+                        <LoyaltyPopup
+                            show={showLoyalty}
+                            onClose={() => setShowLoyalty(false)}
+                            purchasedToday={itemsPurchased}
                         />
                     </div>
                 );
